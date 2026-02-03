@@ -1,709 +1,246 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <title>Mappa Comuni OMPRA - Selezione Interattiva</title>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mappa Completa Clienti Ompra</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        #map { height: 100vh; width: 100%; }
         
-        #container { display: flex; height: 100vh; }
-        
-        #map { flex: 1; height: 100%; }
-        
-        #sidebar {
-            width: 350px;
-            background: #f5f5f5;
-            border-left: 2px solid #ccc;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+        /* Box Informazioni */
+        .info-panel {
+            position: absolute;
+            top: 20px; left: 20px; z-index: 1000;
+            background: white; padding: 15px;
+            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border-left: 5px solid #2e7d32;
+            min-width: 200px;
         }
-        
-        #sidebar-header {
-            background: #1E88E5;
-            color: white;
-            padding: 15px;
+        .close-btn {
+            position: absolute; top: 5px; right: 10px;
+            font-size: 20px; font-weight: bold; color: #888; cursor: pointer;
         }
+        .info-panel h2 { margin: 0 0 5px; font-size: 18px; color: #1b5e20; }
+        .info-panel p { margin: 0; font-size: 14px; color: #555; }
         
-        #sidebar-header h2 { margin-bottom: 10px; font-size: 18px; }
-        
-        #stats {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-        }
-        
-        #stats span { 
-            background: rgba(255,255,255,0.2);
-            padding: 5px 10px;
-            border-radius: 4px;
-        }
-        
-        #controls {
-            padding: 10px 15px;
-            background: #e8e8e8;
-            border-bottom: 1px solid #ccc;
-        }
-        
-        #controls button {
-            padding: 8px 12px;
-            margin-right: 5px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        #btn-all { background: #43A047; color: white; }
-        #btn-none { background: #E53935; color: white; }
-        #btn-export { background: #1E88E5; color: white; }
-        #btn-import { background: #FB8C00; color: white; }
-        
-        #filter-box {
-            padding: 10px 15px;
-            background: #fff;
-            border-bottom: 1px solid #ccc;
-        }
-        
-        #filter-input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        #province-filters {
-            padding: 10px 15px;
-            background: #fff;
-            border-bottom: 1px solid #ccc;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-        
-        .prov-btn {
-            padding: 5px 10px;
-            border: 2px solid;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        
-        #lista-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
-        
-        .comune-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 10px;
-            margin-bottom: 5px;
-            background: white;
-            border-radius: 4px;
-            border-left: 4px solid;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .comune-item:hover { transform: translateX(3px); }
-        
-        .comune-item.disattivo {
-            opacity: 0.4;
-            background: #eee;
-        }
-        
-        .comune-item .nome {
-            flex: 1;
-            font-size: 13px;
-        }
-        
-        .comune-item .info {
-            font-size: 11px;
-            color: #666;
-            text-align: right;
-        }
-        
-        .comune-item .contatti {
-            background: #1E88E5;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 11px;
-            margin-left: 5px;
-        }
-        
-        .hidden { display: none !important; }
-        
-        /* Legenda mappa */
+        /* Legenda */
         .legend {
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            font-size: 12px;
+            position: absolute; bottom: 20px; right: 10px; z-index: 1000;
+            background: rgba(255, 255, 255, 0.95); padding: 10px;
+            border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2); font-size: 12px;
         }
-        .legend h4 { margin-bottom: 8px; }
-        .legend-item { margin: 3px 0; }
-        .legend-color {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
+        .dot { height: 10px; width: 10px; display: inline-block; border-radius: 50%; margin-right: 5px; }
     </style>
 </head>
 <body>
 
-<div id="container">
-    <div id="map"></div>
-    
-    <div id="sidebar">
-        <div id="sidebar-header">
-            <h2>🗺️ Comuni nel raggio 60km</h2>
-            <div id="stats">
-                <span>Attivi: <strong id="count-attivi">0</strong></span>
-                <span>Contatti: <strong id="count-contatti">0</strong></span>
-            </div>
-        </div>
-        
-        <div id="controls">
-            <button id="btn-all" onclick="selezionaTutti()">✓ Tutti</button>
-            <button id="btn-none" onclick="deselezionaTutti()">✗ Nessuno</button>
-            <button id="btn-export" onclick="esportaLista()">📥 Esporta</button>
-            <button id="btn-import" onclick="document.getElementById('file-import').click()">📤 Importa</button>
-            <input type="file" id="file-import" accept=".json" style="display:none" onchange="importaLista(event)">
-        </div>
-        
-        <div id="filter-box">
-            <input type="text" id="filter-input" placeholder="🔍 Cerca comune..." oninput="filtraLista()">
-        </div>
-        
-        <div id="province-filters"></div>
-        
-        <div id="lista-container"></div>
+    <div class="info-panel" id="infoBox">
+        <span class="close-btn" onclick="document.getElementById('infoBox').style.display='none'">&times;</span>
+        <h2>Ompra Srl</h2>
+        <p>Analisi Completa Territorio</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 8px 0;">
+        <p><b>Raggio:</b> 50 km</p>
+        <p>Visualizzati tutti i comuni<br>con almeno 1 contatto.</p>
     </div>
-</div>
 
-<script>
-// Configurazione
-const CENTRO = [45.6685, 12.4015];
-const RAGGIO_KM = 60;
+    <div class="legend">
+        <div><span class="dot" style="background:#d32f2f;"></span> Sede</div>
+        <div><span class="dot" style="background:#1b5e20;"></span> > 10 Clienti</div>
+        <div><span class="dot" style="background:#4caf50;"></span> 3-10 Clienti</div>
+        <div><span class="dot" style="background:#bdbdbd; border:1px solid #999;"></span> 1-2 Clienti</div>
+    </div>
 
-const COLORI = {
-    'TV': '#1E88E5', 'VE': '#43A047', 'PD': '#FB8C00', 'VI': '#8E24AA',
-    'PN': '#E53935', 'BL': '#00ACC1', 'UD': '#6D4C41', 'GO': '#FFB300'
-};
+    <div id="map"></div>
 
-// Dati comuni (generati dallo script Python)
-const comuniData = [
-    {nome: "San Biagio di Callalta", prov: "TV", lat: 45.6881, lon: 12.3831, dist: 2.01, contatti: 15},
-    {nome: "Monastier di Treviso", prov: "TV", lat: 45.6667, lon: 12.4333, dist: 4.57, contatti: 1},
-    {nome: "Breda di Piave", prov: "TV", lat: 45.7233, lon: 12.3308, dist: 5.64, contatti: 11},
-    {nome: "Ponte di Piave", prov: "TV", lat: 45.7167, lon: 12.4667, dist: 7.24, contatti: 4},
-    {nome: "Roncade", prov: "TV", lat: 45.6217, lon: 12.3739, dist: 7.41, contatti: 12},
-    {nome: "Carbonera", prov: "TV", lat: 45.6833, lon: 12.2833, dist: 7.76, contatti: 9},
-    {nome: "Silea", prov: "TV", lat: 45.6500, lon: 12.3000, dist: 7.71, contatti: 3},
-    {nome: "Zenson di Piave", prov: "TV", lat: 45.6833, lon: 12.4833, dist: 7.81, contatti: 1},
-    {nome: "Maserada sul Piave", prov: "TV", lat: 45.7500, lon: 12.3167, dist: 8.60, contatti: 8},
-    {nome: "Ormelle", prov: "TV", lat: 45.7667, lon: 12.4167, dist: 9.13, contatti: 3},
-    {nome: "Meolo", prov: "VE", lat: 45.6167, lon: 12.4500, dist: 9.49, contatti: 2},
-    {nome: "Casier", prov: "TV", lat: 45.6333, lon: 12.2833, dist: 9.85, contatti: 5},
-    {nome: "San Polo di Piave", prov: "TV", lat: 45.7833, lon: 12.3833, dist: 10.60, contatti: 4},
-    {nome: "Salgareda", prov: "TV", lat: 45.7167, lon: 12.5167, dist: 10.86, contatti: 4},
-    {nome: "Casale sul Sile", prov: "TV", lat: 45.5981, lon: 12.3261, dist: 10.93, contatti: 7},
-    {nome: "Cimadolmo", prov: "TV", lat: 45.7833, lon: 12.3667, dist: 10.67, contatti: 2},
-    {nome: "Treviso", prov: "TV", lat: 45.6678, lon: 12.2431, dist: 11.10, contatti: 23},
-    {nome: "Quarto d'Altino", prov: "VE", lat: 45.5833, lon: 12.3667, dist: 11.71, contatti: 1},
-    {nome: "Noventa di Piave", prov: "VE", lat: 45.6667, lon: 12.5333, dist: 11.91, contatti: 4},
-    {nome: "Fossalta di Piave", prov: "VE", lat: 45.6333, lon: 12.5167, dist: 12.04, contatti: 2},
-    {nome: "Villorba", prov: "TV", lat: 45.7333, lon: 12.2333, dist: 12.67, contatti: 5},
-    {nome: "Oderzo", prov: "TV", lat: 45.7811, lon: 12.4894, dist: 13.24, contatti: 4},
-    {nome: "Ponzano Veneto", prov: "TV", lat: 45.7167, lon: 12.2167, dist: 13.30, contatti: 14},
-    {nome: "Povegliano", prov: "TV", lat: 45.7500, lon: 12.2167, dist: 14.64, contatti: 2},
-    {nome: "Spresiano", prov: "TV", lat: 45.7833, lon: 12.2500, dist: 14.79, contatti: 5},
-    {nome: "Preganziol", prov: "TV", lat: 45.6000, lon: 12.2333, dist: 15.20, contatti: 5},
-    {nome: "San Donà di Piave", prov: "VE", lat: 45.6311, lon: 12.5658, dist: 15.55, contatti: 9},
-    {nome: "Musile di Piave", prov: "VE", lat: 45.6167, lon: 12.5667, dist: 16.33, contatti: 11},
-    {nome: "Marcon", prov: "VE", lat: 45.5500, lon: 12.3000, dist: 16.65, contatti: 4},
-    {nome: "Vazzola", prov: "TV", lat: 45.8333, lon: 12.4000, dist: 16.21, contatti: 2},
-    {nome: "Gorgo al Monticano", prov: "TV", lat: 45.7833, lon: 12.5500, dist: 16.74, contatti: 0},
-    {nome: "Arcade", prov: "TV", lat: 45.7833, lon: 12.2167, dist: 16.70, contatti: 1},
-    {nome: "Paese", prov: "TV", lat: 45.6667, lon: 12.1667, dist: 16.97, contatti: 4},
-    {nome: "Quinto di Treviso", prov: "TV", lat: 45.6500, lon: 12.1667, dist: 17.33, contatti: 2},
-    {nome: "Chiarano", prov: "TV", lat: 45.7333, lon: 12.6000, dist: 17.59, contatti: 1},
-    {nome: "Fontanelle", prov: "TV", lat: 45.8333, lon: 12.4667, dist: 17.41, contatti: 5},
-    {nome: "Cessalto", prov: "TV", lat: 45.7100, lon: 12.6156, dist: 18.23, contatti: 0},
-    {nome: "Mogliano Veneto", prov: "TV", lat: 45.5622, lon: 12.2358, dist: 18.07, contatti: 9},
-    {nome: "Mareno di Piave", prov: "TV", lat: 45.8500, lon: 12.3500, dist: 18.19, contatti: 3},
-    {nome: "Mansuè", prov: "TV", lat: 45.8167, lon: 12.5333, dist: 18.46, contatti: 1},
-    {nome: "Nervesa della Battaglia", prov: "TV", lat: 45.8167, lon: 12.2167, dist: 19.27, contatti: 4},
-    {nome: "Zero Branco", prov: "TV", lat: 45.6000, lon: 12.1667, dist: 19.45, contatti: 2},
-    {nome: "Ceggia", prov: "VE", lat: 45.6833, lon: 12.6333, dist: 19.45, contatti: 3},
-    {nome: "Giavera del Montello", prov: "TV", lat: 45.7833, lon: 12.1667, dist: 19.85, contatti: 2},
-    {nome: "Santa Lucia di Piave", prov: "TV", lat: 45.8500, lon: 12.2833, dist: 19.60, contatti: 3},
-    {nome: "Motta di Livenza", prov: "TV", lat: 45.7786, lon: 12.6067, dist: 20.07, contatti: 4},
-    {nome: "Codognè", prov: "TV", lat: 45.8667, lon: 12.4333, dist: 20.25, contatti: 2},
-    {nome: "Susegana", prov: "TV", lat: 45.8500, lon: 12.2500, dist: 20.76, contatti: 4},
-    {nome: "Meduna di Livenza", prov: "TV", lat: 45.8000, lon: 12.6167, dist: 22.00, contatti: 0},
-    {nome: "Portobuffolè", prov: "TV", lat: 45.8500, lon: 12.5333, dist: 21.46, contatti: 0},
-    {nome: "Istrana", prov: "TV", lat: 45.6833, lon: 12.1000, dist: 21.99, contatti: 3},
-    {nome: "San Vendemiano", prov: "TV", lat: 45.8833, lon: 12.3333, dist: 22.06, contatti: 2},
-    {nome: "Morgano", prov: "TV", lat: 45.6500, lon: 12.1000, dist: 22.39, contatti: 4},
-    {nome: "Martellago", prov: "VE", lat: 45.5500, lon: 12.1667, dist: 22.77, contatti: 3},
-    {nome: "Conegliano", prov: "TV", lat: 45.8878, lon: 12.2981, dist: 23.17, contatti: 4},
-    {nome: "Gaiarine", prov: "TV", lat: 45.8833, lon: 12.4833, dist: 23.07, contatti: 3},
-    {nome: "Volpago del Montello", prov: "TV", lat: 45.7833, lon: 12.1167, dist: 23.23, contatti: 3},
-    {nome: "San Stino di Livenza", prov: "VE", lat: 45.7333, lon: 12.6833, dist: 23.85, contatti: 2},
-    {nome: "Pasiano di Pordenone", prov: "PN", lat: 45.8500, lon: 12.5833, dist: 23.79, contatti: 1},
-    {nome: "Trevignano", prov: "TV", lat: 45.7333, lon: 12.0833, dist: 23.81, contatti: 6},
-    {nome: "Scorzè", prov: "VE", lat: 45.5667, lon: 12.1167, dist: 24.71, contatti: 7},
-    {nome: "Annone Veneto", prov: "VE", lat: 45.7833, lon: 12.6833, dist: 25.60, contatti: 2},
-    {nome: "Torre di Mosto", prov: "VE", lat: 45.6833, lon: 12.7167, dist: 25.93, contatti: 1},
-    {nome: "Jesolo", prov: "VE", lat: 45.5333, lon: 12.6333, dist: 25.98, contatti: 8},
-    {nome: "Eraclea", prov: "VE", lat: 45.5833, lon: 12.6833, dist: 26.09, contatti: 3},
-    {nome: "Brugnera", prov: "PN", lat: 45.9000, lon: 12.5333, dist: 26.30, contatti: 0},
-    {nome: "Prata di Pordenone", prov: "PN", lat: 45.8833, lon: 12.5833, dist: 26.70, contatti: 1},
-    {nome: "Salzano", prov: "VE", lat: 45.5333, lon: 12.1167, dist: 26.93, contatti: 4},
-    {nome: "Cavallino-Treporti", prov: "VE", lat: 45.4500, lon: 12.4667, dist: 27.25, contatti: 13},
-    {nome: "Godega di Sant'Urbano", prov: "TV", lat: 45.9333, lon: 12.3833, dist: 27.28, contatti: 0},
-    {nome: "Orsago", prov: "TV", lat: 45.9333, lon: 12.4167, dist: 27.40, contatti: 1},
-    {nome: "Moriago della Battaglia", prov: "TV", lat: 45.8667, lon: 12.1333, dist: 27.75, contatti: 1},
-    {nome: "Sernaglia della Battaglia", prov: "TV", lat: 45.8667, lon: 12.1333, dist: 27.75, contatti: 2},
-    {nome: "Montebelluna", prov: "TV", lat: 45.7756, lon: 12.0436, dist: 28.09, contatti: 7},
-    {nome: "Venezia", prov: "VE", lat: 45.4375, lon: 12.3358, dist: 28.10, contatti: 7},
-    {nome: "Pieve di Soligo", prov: "TV", lat: 45.9000, lon: 12.1833, dist: 28.20, contatti: 4},
-    {nome: "Trebaseleghe", prov: "PD", lat: 45.5833, lon: 12.0500, dist: 28.39, contatti: 3},
-    {nome: "Vedelago", prov: "TV", lat: 45.6833, lon: 12.0167, dist: 28.46, contatti: 10},
-    {nome: "Spinea", prov: "VE", lat: 45.4833, lon: 12.1667, dist: 28.31, contatti: 3},
-    {nome: "Noale", prov: "VE", lat: 45.5500, lon: 12.0667, dist: 28.99, contatti: 4},
-    {nome: "San Pietro di Feletto", prov: "TV", lat: 45.9333, lon: 12.2500, dist: 29.16, contatti: 1},
-    {nome: "Colle Umberto", prov: "TV", lat: 45.9500, lon: 12.3500, dist: 29.25, contatti: 1},
-    {nome: "Cordignano", prov: "TV", lat: 45.9500, lon: 12.4167, dist: 29.25, contatti: 9},
-    {nome: "Pravisdomini", prov: "PN", lat: 45.8333, lon: 12.7000, dist: 29.42, contatti: 0},
-    {nome: "Mirano", prov: "VE", lat: 45.4917, lon: 12.1083, dist: 30.55, contatti: 4},
-    {nome: "Refrontolo", prov: "TV", lat: 45.9333, lon: 12.2000, dist: 30.74, contatti: 0},
-    {nome: "Pramaggiore", prov: "VE", lat: 45.8167, lon: 12.7333, dist: 30.72, contatti: 1},
-    {nome: "Sacile", prov: "PN", lat: 45.9500, lon: 12.5000, dist: 30.51, contatti: 2},
-    {nome: "Cappella Maggiore", prov: "TV", lat: 45.9667, lon: 12.3500, dist: 31.10, contatti: 0},
-    {nome: "Chions", prov: "PN", lat: 45.8500, lon: 12.7167, dist: 31.53, contatti: 1},
-    {nome: "Caneva", prov: "PN", lat: 45.9667, lon: 12.4500, dist: 31.42, contatti: 0},
-    {nome: "Cordignano", prov: "TV", lat: 45.9500, lon: 12.4167, dist: 31.32, contatti: 9},
-    {nome: "Crocetta del Montello", prov: "TV", lat: 45.8333, lon: 12.0333, dist: 31.57, contatti: 2},
-    {nome: "Farra di Soligo", prov: "TV", lat: 45.9167, lon: 12.1167, dist: 32.75, contatti: 5},
-    {nome: "Vidor", prov: "TV", lat: 45.8667, lon: 12.0500, dist: 32.58, contatti: 2},
-    {nome: "Piombino Dese", prov: "PD", lat: 45.6000, lon: 11.9833, dist: 32.58, contatti: 2},
-    {nome: "Caerano di San Marco", prov: "TV", lat: 45.7833, lon: 11.9833, dist: 32.78, contatti: 2},
-    {nome: "Sarmede", prov: "TV", lat: 45.9833, lon: 12.3833, dist: 32.84, contatti: 0},
-    {nome: "Tarzo", prov: "TV", lat: 45.9667, lon: 12.2333, dist: 33.09, contatti: 0},
-    {nome: "Fregona", prov: "TV", lat: 45.9833, lon: 12.3333, dist: 33.06, contatti: 0},
-    {nome: "Massanzago", prov: "PD", lat: 45.5500, lon: 12.0000, dist: 33.51, contatti: 2},
-    {nome: "Vittorio Veneto", prov: "TV", lat: 45.9833, lon: 12.3000, dist: 33.46, contatti: 4},
-    {nome: "Cornuda", prov: "TV", lat: 45.8333, lon: 12.0000, dist: 33.82, contatti: 2},
-    {nome: "Azzano Decimo", prov: "PN", lat: 45.8833, lon: 12.7167, dist: 33.78, contatti: 2},
-    {nome: "Cinto Caomaggiore", prov: "VE", lat: 45.8167, lon: 12.7833, dist: 34.20, contatti: 0},
-    {nome: "Fontanafredda", prov: "PN", lat: 45.9667, lon: 12.5667, dist: 34.10, contatti: 4},
-    {nome: "Altivole", prov: "TV", lat: 45.7553, lon: 11.9539, dist: 34.14, contatti: 1},
-    {nome: "Resana", prov: "TV", lat: 45.6333, lon: 11.9500, dist: 34.20, contatti: 6},
-    {nome: "Mira", prov: "VE", lat: 45.4333, lon: 12.1333, dist: 34.35, contatti: 4},
-    {nome: "Santa Maria di Sala", prov: "VE", lat: 45.5000, lon: 12.0333, dist: 34.31, contatti: 8},
-    {nome: "Crespano del Grappa", prov: "TV", lat: 45.8333, lon: 11.8333, dist: 45.60, contatti: 1},
-    {nome: "Loreggia", prov: "PD", lat: 45.6000, lon: 11.9500, dist: 35.05, contatti: 2},
-    {nome: "Revine Lago", prov: "TV", lat: 45.9833, lon: 12.2333, dist: 34.82, contatti: 0},
-    {nome: "Follina", prov: "TV", lat: 45.9500, lon: 12.1167, dist: 35.70, contatti: 1},
-    {nome: "Fregona", prov: "TV", lat: 45.9833, lon: 12.3333, dist: 35.40, contatti: 0},
-    {nome: "Cison di Valmarino", prov: "TV", lat: 45.9667, lon: 12.1500, dist: 35.87, contatti: 0},
-    {nome: "Porcia", prov: "PN", lat: 45.9667, lon: 12.6167, dist: 35.89, contatti: 1},
-    {nome: "Castelfranco Veneto", prov: "TV", lat: 45.6703, lon: 11.9267, dist: 35.50, contatti: 4},
-    {nome: "Riese Pio X", prov: "TV", lat: 45.7333, lon: 11.9167, dist: 36.55, contatti: 6},
-    {nome: "Miane", prov: "TV", lat: 45.9500, lon: 12.1000, dist: 36.47, contatti: 0},
-    {nome: "Concordia Sagittaria", prov: "VE", lat: 45.7500, lon: 12.8500, dist: 36.90, contatti: 1},
-    {nome: "Portogruaro", prov: "VE", lat: 45.7750, lon: 12.8372, dist: 36.56, contatti: 3},
-    {nome: "Pordenone", prov: "PN", lat: 45.9564, lon: 12.6617, dist: 36.84, contatti: 4},
-    {nome: "Valdobbiadene", prov: "TV", lat: 45.9011, lon: 12.0061, dist: 37.62, contatti: 3},
-    {nome: "Camposampiero", prov: "PD", lat: 45.5667, lon: 11.9333, dist: 37.48, contatti: 4},
-    {nome: "Villanova di Camposampiero", prov: "PD", lat: 45.5000, lon: 11.9833, dist: 37.47, contatti: 2},
-    {nome: "Borgoricco", prov: "PD", lat: 45.5333, lon: 11.9500, dist: 37.82, contatti: 2},
-    {nome: "Pianiga", prov: "VE", lat: 45.4500, lon: 12.0333, dist: 37.97, contatti: 3},
-    {nome: "Dolo", prov: "VE", lat: 45.4247, lon: 12.0750, dist: 37.85, contatti: 2},
-    {nome: "Sesto al Reghena", prov: "PN", lat: 45.8500, lon: 12.8167, dist: 38.16, contatti: 0},
-    {nome: "Fiume Veneto", prov: "PN", lat: 45.9333, lon: 12.7333, dist: 38.49, contatti: 1},
-    {nome: "Asolo", prov: "TV", lat: 45.8014, lon: 11.9133, dist: 38.57, contatti: 2},
-    {nome: "Castello di Godego", prov: "TV", lat: 45.6917, lon: 11.8833, dist: 38.82, contatti: 6},
-    {nome: "Pederobba", prov: "TV", lat: 45.8667, lon: 11.9500, dist: 39.02, contatti: 1},
-    {nome: "Roveredo in Piano", prov: "PN", lat: 46.0000, lon: 12.6167, dist: 39.13, contatti: 1},
-    {nome: "Monfumo", prov: "TV", lat: 45.8500, lon: 11.9333, dist: 39.26, contatti: 0},
-    {nome: "Gruaro", prov: "VE", lat: 45.8333, lon: 12.8500, dist: 39.67, contatti: 0},
-    {nome: "Polcenigo", prov: "PN", lat: 46.0333, lon: 12.5000, dist: 39.45, contatti: 0},
-    {nome: "San Martino di Lupari", prov: "PD", lat: 45.6500, lon: 11.8667, dist: 40.34, contatti: 4},
-    {nome: "Loria", prov: "TV", lat: 45.7333, lon: 11.8667, dist: 40.40, contatti: 16},
-    {nome: "Fiesso d'Artico", prov: "VE", lat: 45.4167, lon: 12.0333, dist: 40.64, contatti: 1},
-    {nome: "Caorle", prov: "VE", lat: 45.6000, lon: 12.8833, dist: 40.10, contatti: 4},
-    {nome: "Santa Giustina in Colle", prov: "PD", lat: 45.5667, lon: 11.9000, dist: 39.91, contatti: 2},
-    {nome: "Vigonza", prov: "PD", lat: 45.4500, lon: 11.9833, dist: 40.85, contatti: 4},
-    {nome: "Cordenons", prov: "PN", lat: 45.9833, lon: 12.7000, dist: 41.00, contatti: 1},
-    {nome: "San Giorgio delle Pertiche", prov: "PD", lat: 45.5333, lon: 11.9000, dist: 41.32, contatti: 2},
-    {nome: "Teglio Veneto", prov: "VE", lat: 45.8167, lon: 12.8833, dist: 41.37, contatti: 0},
-    {nome: "Budoia", prov: "PN", lat: 46.0500, lon: 12.5167, dist: 41.56, contatti: 0},
-    {nome: "Campodarsego", prov: "PD", lat: 45.5000, lon: 11.9167, dist: 41.87, contatti: 4},
-    {nome: "Villa del Conte", prov: "PD", lat: 45.5833, lon: 11.8667, dist: 41.80, contatti: 2},
-    {nome: "Camponogara", prov: "VE", lat: 45.3833, lon: 12.0667, dist: 41.89, contatti: 3},
-    {nome: "Castelcucco", prov: "TV", lat: 45.8333, lon: 11.8833, dist: 42.00, contatti: 0},
-    {nome: "Segusino", prov: "TV", lat: 45.9167, lon: 11.9500, dist: 42.11, contatti: 0},
-    {nome: "Loria", prov: "TV", lat: 45.7333, lon: 11.8667, dist: 42.15, contatti: 16},
-    {nome: "Cavaso del Tomba", prov: "TV", lat: 45.8667, lon: 11.9000, dist: 42.40, contatti: 0},
-    {nome: "Stra", prov: "VE", lat: 45.4167, lon: 12.0000, dist: 42.42, contatti: 2},
-    {nome: "Galliera Veneta", prov: "PD", lat: 45.6667, lon: 11.8333, dist: 42.77, contatti: 2},
-    {nome: "Possagno", prov: "TV", lat: 45.8500, lon: 11.8833, dist: 42.74, contatti: 0},
-    {nome: "Fonte", prov: "TV", lat: 45.7833, lon: 11.8500, dist: 42.70, contatti: 2},
-    {nome: "Cordovado", prov: "PN", lat: 45.8500, lon: 12.8833, dist: 42.78, contatti: 0},
-    {nome: "Zoppola", prov: "PN", lat: 45.9667, lon: 12.7667, dist: 42.94, contatti: 2},
-    {nome: "Fossalta di Portogruaro", prov: "VE", lat: 45.8000, lon: 12.9167, dist: 43.25, contatti: 0},
-    {nome: "Paderno del Grappa", prov: "TV", lat: 45.8167, lon: 11.8500, dist: 43.76, contatti: 1},
-    {nome: "Fossò", prov: "VE", lat: 45.3833, lon: 12.0333, dist: 43.47, contatti: 2},
-    {nome: "Campagna Lupia", prov: "VE", lat: 45.3500, lon: 12.1000, dist: 43.57, contatti: 2},
-    {nome: "Tombolo", prov: "PD", lat: 45.6333, lon: 11.8167, dist: 44.43, contatti: 2},
-    {nome: "San Vito al Tagliamento", prov: "PN", lat: 45.9167, lon: 12.8500, dist: 44.24, contatti: 4},
-    {nome: "Quero Vas", prov: "BL", lat: 45.9333, lon: 11.9333, dist: 44.26, contatti: 1},
-    {nome: "Alano di Piave", prov: "BL", lat: 45.9167, lon: 11.9000, dist: 45.26, contatti: 0},
-    {nome: "San Zenone degli Ezzelini", prov: "TV", lat: 45.7833, lon: 11.8167, dist: 45.21, contatti: 5},
-    {nome: "Cadoneghe", prov: "PD", lat: 45.4333, lon: 11.9333, dist: 45.03, contatti: 3},
-    {nome: "Noventa Padovana", prov: "PD", lat: 45.4167, lon: 11.9500, dist: 45.24, contatti: 2},
-    {nome: "Aviano", prov: "PN", lat: 46.0667, lon: 12.5833, dist: 44.87, contatti: 2},
-    {nome: "San Quirino", prov: "PN", lat: 46.0333, lon: 12.6833, dist: 44.89, contatti: 0},
-    {nome: "Rossano Veneto", prov: "VI", lat: 45.7000, lon: 11.8000, dist: 45.30, contatti: 2},
-    {nome: "Vigodarzere", prov: "PD", lat: 45.4667, lon: 11.8833, dist: 46.02, contatti: 2},
-    {nome: "Casarsa della Delizia", prov: "PN", lat: 45.9500, lon: 12.8500, dist: 46.46, contatti: 2},
-    {nome: "Mussolente", prov: "VI", lat: 45.7833, lon: 11.8000, dist: 46.47, contatti: 2},
-    {nome: "Cittadella", prov: "PD", lat: 45.6500, lon: 11.7833, dist: 46.79, contatti: 6},
-    {nome: "San Giorgio in Bosco", prov: "PD", lat: 45.5833, lon: 11.8000, dist: 46.80, contatti: 2},
-    {nome: "Curtarolo", prov: "PD", lat: 45.5167, lon: 11.8333, dist: 46.81, contatti: 2},
-    {nome: "Campo San Martino", prov: "PD", lat: 45.5500, lon: 11.8167, dist: 46.64, contatti: 2},
-    {nome: "Morsano al Tagliamento", prov: "PN", lat: 45.8833, lon: 12.9167, dist: 46.74, contatti: 0},
-    {nome: "Cassola", prov: "VI", lat: 45.7333, lon: 11.7833, dist: 46.84, contatti: 2},
-    {nome: "Limana", prov: "BL", lat: 46.0833, lon: 12.1833, dist: 46.59, contatti: 0},
-    {nome: "Vigonovo", prov: "VE", lat: 45.3833, lon: 11.9833, dist: 46.01, contatti: 2},
-    {nome: "Saonara", prov: "PD", lat: 45.3667, lon: 11.9833, dist: 47.39, contatti: 13},
-    {nome: "San Michele al Tagliamento", prov: "VE", lat: 45.7667, lon: 12.9833, dist: 47.41, contatti: 2},
-    {nome: "Borso del Grappa", prov: "TV", lat: 45.8167, lon: 11.8000, dist: 47.44, contatti: 1},
-    {nome: "Campolongo Maggiore", prov: "VE", lat: 45.3333, lon: 12.0333, dist: 47.94, contatti: 5},
-    {nome: "Rosà", prov: "VI", lat: 45.7167, lon: 11.7667, dist: 47.97, contatti: 2},
-    {nome: "Romano d'Ezzelino", prov: "VI", lat: 45.7833, lon: 11.7667, dist: 48.99, contatti: 2},
-    {nome: "Latisana", prov: "UD", lat: 45.7833, lon: 12.9917, dist: 48.42, contatti: 3},
-    {nome: "Limena", prov: "PD", lat: 45.4667, lon: 11.8333, dist: 49.36, contatti: 2},
-    {nome: "Fontaniva", prov: "PD", lat: 45.6333, lon: 11.7500, dist: 49.57, contatti: 2},
-    {nome: "Piazzola sul Brenta", prov: "PD", lat: 45.5333, lon: 11.7833, dist: 49.72, contatti: 2},
-    {nome: "Alpago", prov: "BL", lat: 46.1333, lon: 12.3333, dist: 49.66, contatti: 1},
-    {nome: "Tambre", prov: "BL", lat: 46.1333, lon: 12.4167, dist: 49.58, contatti: 0},
-    {nome: "Legnaro", prov: "PD", lat: 45.3500, lon: 11.9667, dist: 49.64, contatti: 2},
-    {nome: "Padova", prov: "PD", lat: 45.4064, lon: 11.8767, dist: 50.35, contatti: 6},
-    {nome: "Ponte San Nicolò", prov: "PD", lat: 45.3667, lon: 11.9167, dist: 50.95, contatti: 2},
-    {nome: "Villafranca Padovana", prov: "PD", lat: 45.4833, lon: 11.8000, dist: 50.76, contatti: 2},
-    {nome: "Valvasone Arzene", prov: "PN", lat: 46.0000, lon: 12.8667, dist: 51.06, contatti: 0},
-    {nome: "Piove di Sacco", prov: "PD", lat: 45.2967, lon: 12.0333, dist: 51.34, contatti: 4},
-    {nome: "Bassano del Grappa", prov: "VI", lat: 45.7667, lon: 11.7333, dist: 51.18, contatti: 3},
-    {nome: "Grantorto", prov: "PD", lat: 45.6000, lon: 11.7333, dist: 51.45, contatti: 2},
-    {nome: "Santa Giustina", prov: "BL", lat: 46.0833, lon: 12.0333, dist: 51.62, contatti: 2},
-    {nome: "Seren del Grappa", prov: "BL", lat: 45.9667, lon: 11.8500, dist: 51.63, contatti: 0},
-    {nome: "Feltre", prov: "BL", lat: 46.0167, lon: 11.9083, dist: 51.84, contatti: 5},
-    {nome: "Codevigo", prov: "PD", lat: 45.2667, lon: 12.1000, dist: 51.78, contatti: 2},
-    {nome: "Belluno", prov: "BL", lat: 46.1417, lon: 12.2167, dist: 52.06, contatti: 2},
-    {nome: "Carmignano di Brenta", prov: "PD", lat: 45.6333, lon: 11.7167, dist: 52.14, contatti: 2},
-    {nome: "Varmo", prov: "UD", lat: 45.9000, lon: 12.9833, dist: 52.17, contatti: 0},
-    {nome: "Ronchis", prov: "UD", lat: 45.8167, lon: 13.0333, dist: 52.45, contatti: 0},
-    {nome: "Sedico", prov: "BL", lat: 46.1167, lon: 12.1000, dist: 52.46, contatti: 5},
-    {nome: "Chioggia", prov: "VE", lat: 45.2167, lon: 12.2833, dist: 52.98, contatti: 2},
-    {nome: "Tezze sul Brenta", prov: "VI", lat: 45.6833, lon: 11.7000, dist: 53.06, contatti: 2},
-    {nome: "Vivaro", prov: "PN", lat: 46.0833, lon: 12.7667, dist: 53.05, contatti: 1},
-    {nome: "Brugine", prov: "PD", lat: 45.3000, lon: 11.9833, dist: 53.22, contatti: 2},
-    {nome: "Chies d'Alpago", prov: "BL", lat: 46.1667, lon: 12.3833, dist: 53.23, contatti: 0},
-    {nome: "San Martino al Tagliamento", prov: "PN", lat: 46.0333, lon: 12.8667, dist: 53.64, contatti: 0},
-    {nome: "Polverara", prov: "PD", lat: 45.3167, lon: 11.9500, dist: 53.32, contatti: 2},
-    {nome: "Precenicco", prov: "UD", lat: 45.8000, lon: 13.0500, dist: 53.24, contatti: 0},
-    {nome: "Pianezze", prov: "VI", lat: 45.7500, lon: 11.7000, dist: 53.47, contatti: 0},
-    {nome: "Arzergrande", prov: "PD", lat: 45.2667, lon: 12.0500, dist: 53.56, contatti: 2},
-    {nome: "Cesiomaggiore", prov: "BL", lat: 46.0833, lon: 11.9833, dist: 53.75, contatti: 0},
-    {nome: "Sant'Angelo di Piove di Sacco", prov: "PD", lat: 45.2833, lon: 12.0000, dist: 54.00, contatti: 2},
-    {nome: "Campodoro", prov: "PD", lat: 45.4833, lon: 11.7500, dist: 54.26, contatti: 2},
-    {nome: "Cartigliano", prov: "VI", lat: 45.7167, lon: 11.6833, dist: 54.43, contatti: 0},
-    {nome: "Pozzoleone", prov: "VI", lat: 45.6500, lon: 11.6833, dist: 54.53, contatti: 0},
-    {nome: "Nove", prov: "VI", lat: 45.7333, lon: 11.6833, dist: 54.56, contatti: 2},
-    {nome: "Rubano", prov: "PD", lat: 45.4333, lon: 11.7833, dist: 54.61, contatti: 2},
-    {nome: "Gazzo", prov: "PD", lat: 45.5667, lon: 11.7000, dist: 54.80, contatti: 0},
-    {nome: "Rivignano Teor", prov: "UD", lat: 45.8833, lon: 13.0333, dist: 54.90, contatti: 0},
-    {nome: "Casalserugo", prov: "PD", lat: 45.3167, lon: 11.9167, dist: 55.00, contatti: 2},
-    {nome: "Albignasego", prov: "PD", lat: 45.3500, lon: 11.8667, dist: 55.05, contatti: 2},
-    {nome: "Camisano Vicentino", prov: "VI", lat: 45.5167, lon: 11.7167, dist: 55.22, contatti: 2},
-    {nome: "Montereale Valcellina", prov: "PN", lat: 46.1500, lon: 12.6500, dist: 55.37, contatti: 0},
-    {nome: "Solagna", prov: "VI", lat: 45.8333, lon: 11.7000, dist: 55.39, contatti: 0},
-    {nome: "Pedavena", prov: "BL", lat: 46.0333, lon: 11.8667, dist: 55.43, contatti: 0},
-    {nome: "San Giorgio della Richinvelda", prov: "PN", lat: 46.0333, lon: 12.9000, dist: 55.47, contatti: 0},
-    {nome: "Palazzolo dello Stella", prov: "UD", lat: 45.8000, lon: 13.0833, dist: 55.75, contatti: 0},
-    {nome: "Ponte nelle Alpi", prov: "BL", lat: 46.1833, lon: 12.2667, dist: 55.80, contatti: 2},
-    {nome: "Codroipo", prov: "UD", lat: 45.9667, lon: 12.9833, dist: 55.89, contatti: 2},
-    {nome: "Mestrino", prov: "PD", lat: 45.4500, lon: 11.7500, dist: 55.93, contatti: 2},
-    {nome: "San Pietro in Gu", prov: "PD", lat: 45.6167, lon: 11.6667, dist: 56.24, contatti: 0},
-    {nome: "Correzzola", prov: "PD", lat: 45.2333, lon: 12.0667, dist: 56.26, contatti: 2},
-    {nome: "Pontelongo", prov: "PD", lat: 45.2500, lon: 12.0167, dist: 56.46, contatti: 0},
-    {nome: "Barcis", prov: "PN", lat: 46.1833, lon: 12.5667, dist: 56.88, contatti: 0},
-    {nome: "Grumolo delle Abbadesse", prov: "VI", lat: 45.5333, lon: 11.6833, dist: 57.08, contatti: 0},
-    {nome: "Soverzene", prov: "BL", lat: 46.2000, lon: 12.3000, dist: 57.29, contatti: 0},
-    {nome: "Camino al Tagliamento", prov: "UD", lat: 45.9333, lon: 13.0333, dist: 57.31, contatti: 0},
-    {nome: "Marostica", prov: "VI", lat: 45.7500, lon: 11.6500, dist: 57.32, contatti: 2},
-    {nome: "Selvazzano Dentro", prov: "PD", lat: 45.3833, lon: 11.7833, dist: 57.70, contatti: 2},
-    {nome: "Maserà di Padova", prov: "PD", lat: 45.3167, lon: 11.8667, dist: 57.65, contatti: 2},
-    {nome: "Grisignano di Zocco", prov: "VI", lat: 45.4833, lon: 11.7000, dist: 57.82, contatti: 0},
-    {nome: "Pocenia", prov: "UD", lat: 45.8333, lon: 13.1000, dist: 57.92, contatti: 0},
-    {nome: "Fonzaso", prov: "BL", lat: 46.0167, lon: 11.8000, dist: 58.09, contatti: 0},
-    {nome: "Veggiano", prov: "PD", lat: 45.4500, lon: 11.7167, dist: 58.23, contatti: 0},
-    {nome: "Lignano Sabbiadoro", prov: "UD", lat: 45.6833, lon: 13.1333, dist: 58.29, contatti: 2},
-    {nome: "Arba", prov: "PN", lat: 46.1333, lon: 12.7833, dist: 58.40, contatti: 0},
-    {nome: "Bovolenta", prov: "PD", lat: 45.2667, lon: 11.9333, dist: 58.51, contatti: 0},
-    {nome: "Bressanvido", prov: "VI", lat: 45.6333, lon: 11.6333, dist: 58.58, contatti: 0},
-    {nome: "Saccolongo", prov: "PD", lat: 45.4000, lon: 11.7500, dist: 58.78, contatti: 0},
-    {nome: "Valstagna", prov: "VI", lat: 45.8667, lon: 11.6667, dist: 59.00, contatti: 0},
-    {nome: "Arsiè", prov: "BL", lat: 45.9833, lon: 11.7500, dist: 59.02, contatti: 0},
-    {nome: "Bolzano Vicentino", prov: "VI", lat: 45.6000, lon: 11.6333, dist: 59.10, contatti: 0},
-    {nome: "Sedegliano", prov: "UD", lat: 46.0167, lon: 12.9833, dist: 59.14, contatti: 0},
-    {nome: "Maniago", prov: "PN", lat: 46.1667, lon: 12.7167, dist: 59.16, contatti: 2},
-    {nome: "Andreis", prov: "PN", lat: 46.2000, lon: 12.6000, dist: 59.35, contatti: 0},
-    {nome: "Quinto Vicentino", prov: "VI", lat: 45.5667, lon: 11.6333, dist: 59.84, contatti: 0},
-    {nome: "Abano Terme", prov: "PD", lat: 45.3500, lon: 11.7833, dist: 59.96, contatti: 2},
-    {nome: "Borgo Valbelluna", prov: "BL", lat: 46.0500, lon: 12.1000, dist: 45.83, contatti: 2},
-];
+    <script>
+        const latOmpra = 45.6883;
+        const lonOmpra = 12.3831;
 
-// Stato
-let comuniStato = {};
-let markers = {};
+        var map = L.map('map').setView([latOmpra, lonOmpra], 9);
 
-// Inizializza
-function init() {
-    // Inizializza stato (tutti attivi)
-    comuniData.forEach(c => {
-        comuniStato[c.nome] = true;
-    });
-    
-    // Crea mappa
-    const map = L.map('map').setView(CENTRO, 9);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
-    
-    // Marker OMPRA
-    L.marker(CENTRO, {
-        icon: L.divIcon({
-            className: 'custom-icon',
-            html: '<div style="background:#E53935;color:white;padding:5px 10px;border-radius:5px;font-weight:bold;white-space:nowrap;">🏠 OMPRA</div>',
-            iconSize: [80, 30],
-            iconAnchor: [40, 15]
-        })
-    }).addTo(map);
-    
-    // Cerchio raggio
-    L.circle(CENTRO, {
-        radius: RAGGIO_KM * 1000,
-        color: '#E53935',
-        fillOpacity: 0.05,
-        weight: 2
-    }).addTo(map);
-    
-    // Crea markers per ogni comune
-    comuniData.forEach(c => {
-        const colore = COLORI[c.prov] || '#666';
-        const marker = L.circleMarker([c.lat, c.lon], {
-            radius: Math.max(5, Math.min(12, 5 + c.contatti/2)),
-            color: colore,
-            fillColor: colore,
-            fillOpacity: 0.7,
-            weight: 2
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Cerchio 50km
+        L.circle([latOmpra, lonOmpra], {
+            color: '#2e7d32', fillColor: '#4caf50', fillOpacity: 0.05, weight: 1, radius: 50000 
+        }).addTo(map);
+
+        // --- DATASET COMPLETO (Estratto dal tuo file Excel) ---
+        const comuni = [
+            { nome: "OMPRA Sede", lat: 45.6883, lon: 12.3831, val: 100, tipo: "sede" },
+            { nome: "San Biagio di Callalta", lat: 45.6867, lon: 12.3833, val: 15 },
+            { nome: "Monastier di Treviso", lat: 45.6500, lon: 12.4333, val: 1 },
+            { nome: "Breda di Piave", lat: 45.7136, lon: 12.3276, val: 11 },
+            { nome: "Roncade", lat: 45.6269, lon: 12.3739, val: 12 },
+            { nome: "Silea", lat: 45.6583, lon: 12.2964, val: 5 },
+            { nome: "Carbonera", lat: 45.6833, lon: 12.2833, val: 9 },
+            { nome: "Maserada sul Piave", lat: 45.7500, lon: 12.3167, val: 8 },
+            { nome: "Casier", lat: 45.6122, lon: 12.2936, val: 5 },
+            { nome: "Cimadolmo", lat: 45.7833, lon: 12.3667, val: 1 },
+            { nome: "Salgareda", lat: 45.7000, lon: 12.4833, val: 1 },
+            { nome: "Casale sul Sile", lat: 45.6000, lon: 12.3333, val: 7 },
+            { nome: "Treviso", lat: 45.6669, lon: 12.2423, val: 23 },
+            { nome: "Quarto d'Altino", lat: 45.5833, lon: 12.3667, val: 1 },
+            { nome: "Fossalta di Piave", lat: 45.6500, lon: 12.5167, val: 1 },
+            { nome: "Villorba", lat: 45.7333, lon: 12.2333, val: 5 },
+            { nome: "Oderzo", lat: 45.7833, lon: 12.4936, val: 1 },
+            { nome: "Ponzano Veneto", lat: 45.7222, lon: 12.2222, val: 14 },
+            { nome: "Povegliano", lat: 45.7667, lon: 12.2000, val: 1 },
+            { nome: "Spresiano", lat: 45.7833, lon: 12.2500, val: 5 },
+            { nome: "Preganziol", lat: 45.6000, lon: 12.2333, val: 5 },
+            { nome: "San Donà di Piave", lat: 45.6307, lon: 12.5636, val: 9 },
+            { nome: "Vazzola", lat: 45.8333, lon: 12.3833, val: 3 },
+            { nome: "Musile di Piave", lat: 45.6179, lon: 12.5623, val: 11 },
+            { nome: "Marcon", lat: 45.5667, lon: 12.3000, val: 4 },
+            { nome: "Paese", lat: 45.6667, lon: 12.1500, val: 3 },
+            { nome: "Quinto di Treviso", lat: 45.6500, lon: 12.1667, val: 1 },
+            { nome: "Fontanelle", lat: 45.8333, lon: 12.4667, val: 5 },
+            { nome: "Chiarano", lat: 45.7333, lon: 12.5833, val: 3 },
+            { nome: "Mogliano Veneto", lat: 45.5614, lon: 12.2472, val: 9 },
+            { nome: "Mareno di Piave", lat: 45.8500, lon: 12.3500, val: 3 },
+            { nome: "Mansuè", lat: 45.8167, lon: 12.5333, val: 2 },
+            { nome: "Nervesa della Battaglia", lat: 45.8167, lon: 12.2167, val: 4 },
+            { nome: "Ceggia", lat: 45.6833, lon: 12.6333, val: 1 },
+            { nome: "Zero Branco", lat: 45.6000, lon: 12.1667, val: 3 },
+            { nome: "Santa Lucia di Piave", lat: 45.8500, lon: 12.2833, val: 4 },
+            { nome: "Motta di Livenza", lat: 45.7667, lon: 12.6000, val: 2 },
+            { nome: "Susegana", lat: 45.8500, lon: 12.2500, val: 2 },
+            { nome: "Istrana", lat: 45.6833, lon: 12.1000, val: 2 },
+            { nome: "Morgano", lat: 45.6500, lon: 12.1000, val: 1 },
+            { nome: "Conegliano", lat: 45.8872, lon: 12.2968, val: 4 },
+            { nome: "Volpago del Montello", lat: 45.7833, lon: 12.1167, val: 1 },
+            { nome: "Pasiano di Pordenone", lat: 45.8500, lon: 12.6333, val: 1 },
+            { nome: "Trevignano", lat: 45.7333, lon: 12.0667, val: 6 },
+            { nome: "San Stino di Livenza", lat: 45.7333, lon: 12.6833, val: 4 },
+            { nome: "Scorzè", lat: 45.5667, lon: 12.1167, val: 7 },
+            { nome: "San Fior", lat: 45.9167, lon: 12.3667, val: 2 },
+            { nome: "Torre di Mosto", lat: 45.6833, lon: 12.7167, val: 1 },
+            { nome: "Jesolo", lat: 45.5337, lon: 12.6416, val: 8 },
+            { nome: "Eraclea", lat: 45.5833, lon: 12.6833, val: 1 },
+            { nome: "Brugnera", lat: 45.9333, lon: 12.5333, val: 2 },
+            { nome: "Prata di Pordenone", lat: 45.8833, lon: 12.5833, val: 3 },
+            { nome: "Salzano", lat: 45.5333, lon: 12.1167, val: 5 },
+            { nome: "Cavallino-Treporti", lat: 45.4542, lon: 12.4542, val: 13 },
+            { nome: "Montebelluna", lat: 45.7758, lon: 12.0464, val: 7 },
+            { nome: "Venezia", lat: 45.4408, lon: 12.3155, val: 7 },
+            { nome: "Pieve di Soligo", lat: 45.9000, lon: 12.1667, val: 1 },
+            { nome: "Spinea", lat: 45.5000, lon: 12.1667, val: 1 },
+            { nome: "Trebaseleghe", lat: 45.6000, lon: 12.0500, val: 2 },
+            { nome: "Vedelago", lat: 45.6833, lon: 12.0167, val: 10 },
+            { nome: "Noale", lat: 45.5500, lon: 12.0667, val: 2 },
+            { nome: "Colle Umberto", lat: 45.9500, lon: 12.3500, val: 1 },
+            { nome: "Cordignano", lat: 45.9469, lon: 12.4136, val: 9 },
+            { nome: "Sacile", lat: 45.9500, lon: 12.5000, val: 3 },
+            { nome: "Mirano", lat: 45.5000, lon: 12.1167, val: 3 },
+            { nome: "Pramaggiore", lat: 45.8167, lon: 12.7333, val: 1 },
+            { nome: "Refrontolo", lat: 45.9167, lon: 12.2000, val: 2 },
+            { nome: "Cappella Maggiore", lat: 45.9667, lon: 12.3667, val: 1 },
+            { nome: "Caneva", lat: 45.9667, lon: 12.4500, val: 2 },
+            { nome: "Crocetta del Montello", lat: 45.8333, lon: 12.0500, val: 1 },
+            { nome: "Piombino Dese", lat: 45.6000, lon: 12.0000, val: 3 },
+            { nome: "Farra di Soligo", lat: 45.9000, lon: 12.1000, val: 5 },
+            { nome: "Caerano di San Marco", lat: 45.7833, lon: 12.0000, val: 2 },
+            { nome: "Fregona", lat: 46.0000, lon: 12.3333, val: 1 },
+            { nome: "Tarzo", lat: 45.9667, lon: 12.2333, val: 1 },
+            { nome: "Vittorio Veneto", lat: 45.9833, lon: 12.3000, val: 3 },
+            { nome: "Massanzago", lat: 45.5667, lon: 12.0000, val: 1 },
+            { nome: "Azzano Decimo", lat: 45.8833, lon: 12.7000, val: 1 },
+            { nome: "Cornuda", lat: 45.8333, lon: 12.0000, val: 1 },
+            { nome: "Fontanafredda", lat: 45.9667, lon: 12.5667, val: 3 },
+            { nome: "Altivole", lat: 45.7500, lon: 11.9500, val: 2 },
+            { nome: "Resana", lat: 45.6333, lon: 11.9500, val: 6 },
+            { nome: "Santa Maria di Sala", lat: 45.5000, lon: 12.0333, val: 8 },
+            { nome: "Mira", lat: 45.4333, lon: 12.1333, val: 1 },
+            { nome: "Castelfranco Veneto", lat: 45.6714, lon: 11.9344, val: 5 },
+            { nome: "Porcia", lat: 45.9667, lon: 12.6167, val: 1 },
+            { nome: "Riese Pio X", lat: 45.7333, lon: 11.9167, val: 6 },
+            { nome: "Concordia Sagittaria", lat: 45.7500, lon: 12.8333, val: 1 },
+            { nome: "Camposampiero", lat: 45.5667, lon: 11.9333, val: 1 },
+            { nome: "Valdobbiadene", lat: 45.9000, lon: 11.9333, val: 1 },
+            { nome: "Borgoricco", lat: 45.5333, lon
+            { nome: "Pianiga", lat: 45.4667, lon: 12.0333, val: 4 },
+            { nome: "Fiume Veneto", lat: 45.9333, lon: 12.7333, val: 1 },
+            { nome: "Asolo", lat: 45.8000, lon: 11.9167, val: 3 },
+            { nome: "Castello di Godego", lat: 45.6833, lon: 11.8833, val: 6 },
+            { nome: "Pederobba", lat: 45.8833, lon: 11.9500, val: 3 },
+            { nome: "Santa Giustina in Colle", lat: 45.5667, lon: 11.9000, val: 1 },
+            { nome: "Caorle", lat: 45.6000, lon: 12.8833, val: 2 },
+            { nome: "San Martino di Lupari", lat: 45.6500, lon: 11.8500, val: 4 },
+            { nome: "Loria", lat: 45.7303, lon: 11.8647, val: 16 },
+            { nome: "Vigonza", lat: 45.4414, lon: 11.9833, val: 2 },
+            { nome: "Campodarsego", lat: 45.5000, lon: 11.9167, val: 1 },
+            { nome: "Camponogara", lat: 45.3833, lon: 12.0667, val: 5 },
+            { nome: "Castelcucco", lat: 45.8333, lon: 11.8833, val: 2 },
+            { nome: "Galliera Veneta", lat: 45.6667, lon: 11.8333, val: 2 },
+            { nome: "San Vito al Tagliamento", lat: 45.9167, lon: 12.8500, val: 1 },
+            { nome: "San Zenone degli Ezzelini", lat: 45.7833, lon: 11.8333, val: 5 },
+            { nome: "Noventa Padovana", lat: 45.4167, lon: 11.9500, val: 1 },
+            { nome: "Rossano Veneto", lat: 45.7000, lon: 11.8000, val: 2 },
+            { nome: "Vigonovo", lat: 45.3833, lon: 12.0000, val: 4 },
+            { nome: "Vigodarzere", lat: 45.4667, lon: 11.8833, val: 2 },
+            { nome: "Limana", lat: 46.1000, lon: 12.1833, val: 1 },
+            { nome: "Cittadella", lat: 45.6486, lon: 11.7833, val: 6 },
+            { nome: "San Giorgio in Bosco", lat: 45.5833, lon: 11.8000, val: 1 },
+            { nome: "Curtarolo", lat: 45.5167, lon: 11.8333, val: 1 },
+            { nome: "Saonara", lat: 45.3689, lon: 11.9793, val: 13 },
+            { nome: "San Michele al Tagliamento", lat: 45.6667, lon: 13.0000, val: 2 },
+            { nome: "Campolongo Maggiore", lat: 45.3333, lon: 12.0500, val: 5 },
+            { nome: "Latisana", lat: 45.7833, lon: 13.0000, val: 1 },
+            { nome: "Fontaniva", lat: 45.6333, lon: 11.7500, val: 1 },
+            { nome: "Legnaro", lat: 45.3500, lon: 11.9667, val: 1 },
+            { nome: "Piazzola sul Brenta", lat: 45.5333, lon: 11.7833, val: 1 },
+            { nome: "Padova", lat: 45.4064, lon: 11.8768, val: 6 },
+            { nome: "Villafranca Padovana", lat: 45.4833, lon: 11.7167, val: 1 },
+            { nome: "Ponte San Nicolò", lat: 45.3667, lon: 11.9333, val: 1 },
+            { nome: "Piove di Sacco", lat: 45.3000, lon: 12.0333, val: 2 },
+            { nome: "Feltre", lat: 46.0167, lon: 11.9000, val: 5 },
+            { nome: "Belluno", lat: 46.1333, lon: 12.2167, val: 4 },
+            { nome: "Sedico", lat: 46.1167, lon: 12.1000, val: 5 },
+            { nome: "Tezze sul Brenta", lat: 45.6833, lon: 11.7000, val: 1 },
+            { nome: "Arzergrande", lat: 45.2833, lon: 12.0500, val: 1 },
+            { nome: "Sant'Angelo di Piove di Sacco", lat: 45.3500, lon: 12.0000, val: 2 },
+            { nome: "Albignasego", lat: 45.3500, lon: 11.8667, val: 1 },
+            { nome: "Ponte nelle Alpi", lat: 46.1833, lon: 12.2833, val: 1 },
+            { nome: "Mestrino", lat: 45.4500, lon: 11.7667, val: 1 },
+            { nome: "Maserà di Padova", lat: 45.3167, lon: 11.8667, val: 2 },
+            { nome: "Selvazzano Dentro", lat: 45.4000, lon: 11.7833, val: 1 },
+            { nome: "Veggiano", lat: 45.4500, lon: 11.7000, val: 1 },
+            { nome: "Bovolenta", lat: 45.2667, lon: 11.9333, val: 1 }
+        ];
+
+        // --- 4. DISEGNO PUNTI ---
+        comuni.forEach(c => {
+            let color, radius, opacity;
+
+            if (c.tipo === "sede") {
+                color = "#d32f2f"; radius = 14; opacity = 1;
+            } else if (c.val >= 10) {
+                color = "#1b5e20"; radius = 12; opacity = 0.8;
+            } else if (c.val >= 3) {
+                color = "#4caf50"; radius = 8; opacity = 0.7;
+            } else {
+                color = "#bdbdbd"; radius = 5; opacity = 0.6;
+            }
+
+            L.circleMarker([c.lat, c.lon], {
+                radius: radius,
+                fillColor: color,
+                color: "#fff",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: opacity
+            }).addTo(map)
+            .bindPopup(`<div style="text-align:center"><b>${c.nome}</b><br>Contatti: ${c.val}</div>`);
         });
-        
-        marker.bindPopup(`
-            <b>${c.nome}</b><br>
-            Provincia: ${c.prov}<br>
-            Distanza: ${c.dist} km<br>
-            Contatti: <b>${c.contatti}</b>
-        `);
-        
-        marker.on('click', () => toggleComune(c.nome));
-        marker.addTo(map);
-        markers[c.nome] = marker;
-    });
-    
-    // Popola filtri province
-    const provContainer = document.getElementById('province-filters');
-    Object.keys(COLORI).forEach(prov => {
-        const count = comuniData.filter(c => c.prov === prov).length;
-        if (count > 0) {
-            const btn = document.createElement('button');
-            btn.className = 'prov-btn';
-            btn.style.borderColor = COLORI[prov];
-            btn.style.color = COLORI[prov];
-            btn.innerHTML = `${prov} (${count})`;
-            btn.onclick = () => toggleProvincia(prov);
-            provContainer.appendChild(btn);
-        }
-    });
-    
-    // Aggiorna UI
-    aggiornaLista();
-    aggiornaStats();
-}
 
-function toggleComune(nome) {
-    comuniStato[nome] = !comuniStato[nome];
-    aggiornaMarker(nome);
-    aggiornaLista();
-    aggiornaStats();
-}
-
-function aggiornaMarker(nome) {
-    const marker = markers[nome];
-    const attivo = comuniStato[nome];
-    const c = comuniData.find(x => x.nome === nome);
-    const colore = COLORI[c.prov] || '#666';
-    
-    marker.setStyle({
-        fillOpacity: attivo ? 0.7 : 0.15,
-        opacity: attivo ? 1 : 0.3,
-        fillColor: attivo ? colore : '#999'
-    });
-}
-
-function aggiornaLista() {
-    const container = document.getElementById('lista-container');
-    const filtro = document.getElementById('filter-input').value.toLowerCase();
-    
-    // Ordina: attivi prima, poi per distanza
-    const ordinati = [...comuniData].sort((a, b) => {
-        const aAttivo = comuniStato[a.nome];
-        const bAttivo = comuniStato[b.nome];
-        if (aAttivo !== bAttivo) return bAttivo - aAttivo;
-        return a.dist - b.dist;
-    });
-    
-    container.innerHTML = ordinati.map(c => {
-        const attivo = comuniStato[c.nome];
-        const visibile = c.nome.toLowerCase().includes(filtro) || 
-                        c.prov.toLowerCase().includes(filtro);
-        const colore = COLORI[c.prov] || '#666';
-        
-        return `
-            <div class="comune-item ${attivo ? '' : 'disattivo'} ${visibile ? '' : 'hidden'}"
-                 style="border-left-color: ${colore}"
-                 onclick="toggleComune('${c.nome}')">
-                <div class="nome">${c.nome}</div>
-                <div class="info">
-                    ${c.prov} · ${c.dist} km
-                    ${c.contatti > 0 ? `<span class="contatti">${c.contatti}</span>` : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function aggiornaStats() {
-    const attivi = comuniData.filter(c => comuniStato[c.nome]);
-    const totContatti = attivi.reduce((sum, c) => sum + c.contatti, 0);
-    
-    document.getElementById('count-attivi').textContent = attivi.length;
-    document.getElementById('count-contatti').textContent = totContatti;
-}
-
-function filtraLista() {
-    aggiornaLista();
-}
-
-function selezionaTutti() {
-    comuniData.forEach(c => {
-        comuniStato[c.nome] = true;
-        aggiornaMarker(c.nome);
-    });
-    aggiornaLista();
-    aggiornaStats();
-}
-
-function deselezionaTutti() {
-    comuniData.forEach(c => {
-        comuniStato[c.nome] = false;
-        aggiornaMarker(c.nome);
-    });
-    aggiornaLista();
-    aggiornaStats();
-}
-
-function toggleProvincia(prov) {
-    const comuniProv = comuniData.filter(c => c.prov === prov);
-    const tuttiAttivi = comuniProv.every(c => comuniStato[c.nome]);
-    
-    comuniProv.forEach(c => {
-        comuniStato[c.nome] = !tuttiAttivi;
-        aggiornaMarker(c.nome);
-    });
-    aggiornaLista();
-    aggiornaStats();
-}
-
-function esportaLista() {
-    const attivi = comuniData.filter(c => comuniStato[c.nome]);
-    
-    // Crea CSV
-    let csv = 'Comune,Provincia,Distanza_km,Contatti\n';
-    attivi.forEach(c => {
-        csv += `"${c.nome}",${c.prov},${c.dist},${c.contatti}\n`;
-    });
-    
-    // Download
-    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'comuni_selezionati.csv';
-    link.click();
-    
-    // Salva anche JSON per reimportazione
-    const json = JSON.stringify(comuniStato, null, 2);
-    const blobJson = new Blob([json], {type: 'application/json'});
-    const linkJson = document.createElement('a');
-    linkJson.href = URL.createObjectURL(blobJson);
-    linkJson.download = 'selezione_comuni.json';
-    linkJson.click();
-}
-
-function importaLista(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const importato = JSON.parse(e.target.result);
-            Object.keys(importato).forEach(nome => {
-                if (comuniStato.hasOwnProperty(nome)) {
-                    comuniStato[nome] = importato[nome];
-                    aggiornaMarker(nome);
-                }
-            });
-            aggiornaLista();
-            aggiornaStats();
-            alert('Selezione importata con successo!');
-        } catch (err) {
-            alert('Errore nel file JSON');
-        }
-    };
-    reader.readAsText(file);
-}
-
-// Avvia
-document.addEventListener('DOMContentLoaded', init);
-</script>
-
+    </script>
 </body>
 </html>
