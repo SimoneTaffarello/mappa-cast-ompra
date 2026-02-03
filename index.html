@@ -4,31 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mappa Completa Clienti Ompra</title>
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-        #map { height: 100vh; width: 100%; }
-        
-        /* Box Informazioni */
+        #map { height: 100vh; width: 100%; background: #f0f0f0; }
         .info-panel {
-            position: absolute;
-            top: 20px; left: 20px; z-index: 1000;
-            background: white; padding: 15px;
-            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            border-left: 5px solid #2e7d32;
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            background: white; padding: 15px; border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); border-left: 5px solid #2e7d32;
             min-width: 200px;
         }
-        .close-btn {
-            position: absolute; top: 5px; right: 10px;
-            font-size: 20px; font-weight: bold; color: #888; cursor: pointer;
-        }
+        .close-btn { position: absolute; top: 5px; right: 10px; font-size: 20px; font-weight: bold; color: #888; cursor: pointer; }
         .info-panel h2 { margin: 0 0 5px; font-size: 18px; color: #1b5e20; }
         .info-panel p { margin: 0; font-size: 14px; color: #555; }
-        
-        /* Legenda */
         .legend {
             position: absolute; bottom: 20px; right: 10px; z-index: 1000;
             background: rgba(255, 255, 255, 0.95); padding: 10px;
@@ -38,42 +27,26 @@
     </style>
 </head>
 <body>
-
     <div class="info-panel" id="infoBox">
         <span class="close-btn" onclick="document.getElementById('infoBox').style.display='none'">&times;</span>
         <h2>Ompra Srl</h2>
         <p>Analisi Completa Territorio</p>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 8px 0;">
         <p><b>Raggio:</b> 50 km</p>
-        <p>Visualizzati tutti i comuni<br>con almeno 1 contatto.</p>
     </div>
-
     <div class="legend">
         <div><span class="dot" style="background:#d32f2f;"></span> Sede</div>
-        <div><span class="dot" style="background:#1b5e20;"></span> > 10 Clienti</div>
-        <div><span class="dot" style="background:#4caf50;"></span> 3-10 Clienti</div>
-        <div><span class="dot" style="background:#bdbdbd; border:1px solid #999;"></span> 1-2 Clienti</div>
+        <div><span class="dot" style="background:#1b5e20;"></span> > 10 Contatti</div>
+        <div><span class="dot" style="background:#4caf50;"></span> 3-10 Contatti</div>
+        <div><span class="dot" style="background:#bdbdbd; border:1px solid #999;"></span> 1-2 Contatti</div>
     </div>
-
     <div id="map"></div>
-
     <script>
-        const latOmpra = 45.6883;
-        const lonOmpra = 12.3831;
-
+        const latOmpra = 45.6883; const lonOmpra = 12.3831;
         var map = L.map('map').setView([latOmpra, lonOmpra], 9);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+        L.circle([latOmpra, lonOmpra], { color: '#2e7d32', fillColor: '#4caf50', fillOpacity: 0.05, weight: 1, radius: 50000 }).addTo(map);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
-            maxZoom: 19
-        }).addTo(map);
-
-        // Cerchio 50km
-        L.circle([latOmpra, lonOmpra], {
-            color: '#2e7d32', fillColor: '#4caf50', fillOpacity: 0.05, weight: 1, radius: 50000 
-        }).addTo(map);
-
-        // --- DATASET COMPLETO (Estratto dal tuo file Excel) ---
         const comuni = [
             { nome: "OMPRA Sede", lat: 45.6883, lon: 12.3831, val: 100, tipo: "sede" },
             { nome: "San Biagio di Callalta", lat: 45.6867, lon: 12.3833, val: 15 },
@@ -165,7 +138,8 @@
             { nome: "Concordia Sagittaria", lat: 45.7500, lon: 12.8333, val: 1 },
             { nome: "Camposampiero", lat: 45.5667, lon: 11.9333, val: 1 },
             { nome: "Valdobbiadene", lat: 45.9000, lon: 11.9333, val: 1 },
-            { nome: "Borgoricco", lat: 45.5333, lon
+            { nome: "Borgoricco", lat: 45.5333, lon: 11.9667, val: 1 },
+            { nome: "Dolo", lat: 45.4167, lon: 12.0833, val: 2 },
             { nome: "Pianiga", lat: 45.4667, lon: 12.0333, val: 4 },
             { nome: "Fiume Veneto", lat: 45.9333, lon: 12.7333, val: 1 },
             { nome: "Asolo", lat: 45.8000, lon: 11.9167, val: 3 },
@@ -216,31 +190,15 @@
             { nome: "Bovolenta", lat: 45.2667, lon: 11.9333, val: 1 }
         ];
 
-        // --- 4. DISEGNO PUNTI ---
         comuni.forEach(c => {
             let color, radius, opacity;
-
-            if (c.tipo === "sede") {
-                color = "#d32f2f"; radius = 14; opacity = 1;
-            } else if (c.val >= 10) {
-                color = "#1b5e20"; radius = 12; opacity = 0.8;
-            } else if (c.val >= 3) {
-                color = "#4caf50"; radius = 8; opacity = 0.7;
-            } else {
-                color = "#bdbdbd"; radius = 5; opacity = 0.6;
-            }
-
-            L.circleMarker([c.lat, c.lon], {
-                radius: radius,
-                fillColor: color,
-                color: "#fff",
-                weight: 1,
-                opacity: 1,
-                fillOpacity: opacity
-            }).addTo(map)
-            .bindPopup(`<div style="text-align:center"><b>${c.nome}</b><br>Contatti: ${c.val}</div>`);
+            if (c.tipo === "sede") { color = "#d32f2f"; radius = 14; opacity = 1; }
+            else if (c.val >= 10) { color = "#1b5e20"; radius = 12; opacity = 0.8; }
+            else if (c.val >= 3) { color = "#4caf50"; radius = 8; opacity = 0.7; }
+            else { color = "#bdbdbd"; radius = 5; opacity = 0.6; }
+            L.circleMarker([c.lat, c.lon], { radius: radius, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: opacity })
+            .addTo(map).bindPopup(`<div style="text-align:center"><b>${c.nome}</b><br>Contatti: ${c.val}</div>`);
         });
-
     </script>
 </body>
 </html>
